@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { deleteTodo, getTodos, setTodo, USER_ID } from './api/todos';
 import { Todo } from './types/Todo';
 
@@ -12,6 +12,7 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [deletingTodoId, setDeletingTodoId] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     getTodos()
@@ -66,7 +67,6 @@ export const App: React.FC = () => {
       .catch(() => {
         setErrorMessage('Unable to add a todo');
 
-        // 👇 добавляем таймер на скрытие ошибки
         setTimeout(() => {
           setErrorMessage('');
         }, 3000);
@@ -84,11 +84,7 @@ export const App: React.FC = () => {
       .then(() => {
         setTodos(prev => prev.filter(todo => todo.id !== id));
 
-        const input = document.querySelector<HTMLInputElement>(
-          '[data-cy="NewTodoField"]',
-        );
-
-        input?.focus();
+        inputRef.current?.focus();
       })
       .catch(() => {
         setErrorMessage('Unable to delete a todo');
@@ -111,32 +107,24 @@ export const App: React.FC = () => {
 
     Promise.allSettled(completedTodos.map(todo => deleteTodo(todo.id)))
       .then(results => {
-        // Успешно удалённые todos
         const successfulIds = completedTodos
           .filter((_, i) => results[i].status === 'fulfilled')
           .map(todo => todo.id);
 
         setTodos(prev => prev.filter(todo => !successfulIds.includes(todo.id)));
 
-        // Проверяем — были ли ошибки
         const hasErrors = results.some(r => r.status === 'rejected');
 
         if (hasErrors) {
-          // 👇 Cypress проверяет именно этот текст
           setErrorMessage('Unable to delete a todo');
 
-          // 👇 Сообщение должно висеть 3 секунды
           setTimeout(() => setErrorMessage(''), 3000);
         }
       })
       .finally(() => {
         setIsLoading(false);
 
-        const input = document.querySelector<HTMLInputElement>(
-          '[data-cy="NewTodoField"]',
-        );
-
-        input?.focus();
+        inputRef.current?.focus();
       });
   };
 
@@ -163,6 +151,7 @@ export const App: React.FC = () => {
             className="todoapp__new-todo"
             placeholder="What needs to be done?"
             autoFocus
+            ref={inputRef}
             value={title}
             onChange={e => setTitle(e.target.value)}
             onKeyDown={e => {
