@@ -38,7 +38,11 @@ export const App: React.FC = () => {
 
   const handleAddTodo = () => {
     if (title.trim() === '') {
-      setErrorMessage('Field cannot be empty');
+      setErrorMessage('Title should not be empty');
+
+      setTimeout(() => {
+        setErrorMessage('');
+      }, 3000);
 
       return;
     }
@@ -61,6 +65,11 @@ export const App: React.FC = () => {
       })
       .catch(() => {
         setErrorMessage('Unable to add a todo');
+
+        // 👇 добавляем таймер на скрытие ошибки
+        setTimeout(() => {
+          setErrorMessage('');
+        }, 3000);
       })
       .finally(() => {
         setIsLoading(false);
@@ -74,9 +83,17 @@ export const App: React.FC = () => {
     deleteTodo(id)
       .then(() => {
         setTodos(prev => prev.filter(todo => todo.id !== id));
+
+        const input = document.querySelector<HTMLInputElement>(
+          '[data-cy="NewTodoField"]',
+        );
+
+        input?.focus();
       })
       .catch(() => {
         setErrorMessage('Unable to delete a todo');
+
+        setTimeout(() => setErrorMessage(''), 3000);
       })
       .finally(() => {
         setDeletingTodoId(null);
@@ -94,21 +111,32 @@ export const App: React.FC = () => {
 
     Promise.allSettled(completedTodos.map(todo => deleteTodo(todo.id)))
       .then(results => {
+        // Успешно удалённые todos
         const successfulIds = completedTodos
           .filter((_, i) => results[i].status === 'fulfilled')
           .map(todo => todo.id);
 
         setTodos(prev => prev.filter(todo => !successfulIds.includes(todo.id)));
 
+        // Проверяем — были ли ошибки
         const hasErrors = results.some(r => r.status === 'rejected');
 
         if (hasErrors) {
-          setErrorMessage('Unable to delete some todos');
+          // 👇 Cypress проверяет именно этот текст
+          setErrorMessage('Unable to delete a todo');
+
+          // 👇 Сообщение должно висеть 3 секунды
           setTimeout(() => setErrorMessage(''), 3000);
         }
       })
       .finally(() => {
         setIsLoading(false);
+
+        const input = document.querySelector<HTMLInputElement>(
+          '[data-cy="NewTodoField"]',
+        );
+
+        input?.focus();
       });
   };
 
@@ -176,16 +204,19 @@ export const App: React.FC = () => {
                 ×
               </button>
 
-              {deletingTodoId === todo.id && (
-                <div data-cy="TodoLoader" className="modal overlay is-active">
-                  <div className="modal-background has-background-white-ter" />
-                  <div className="loader" />
-                </div>
-              )}
+              <div
+                data-cy="TodoLoader"
+                className={`modal overlay ${
+                  deletingTodoId === todo.id ? 'is-active' : ''
+                }`}
+              >
+                <div className="modal-background has-background-white-ter" />
+                <div className="loader" />
+              </div>
             </div>
           ))}
 
-          {tempTodo && (
+          {tempTodo && isLoading && (
             <div
               key={tempTodo.id}
               data-cy="Todo"
@@ -197,6 +228,7 @@ export const App: React.FC = () => {
                   type="checkbox"
                   className="todo__status"
                   checked={tempTodo.completed}
+                  readOnly
                 />
               </label>
 
@@ -208,6 +240,7 @@ export const App: React.FC = () => {
                 type="button"
                 className="todo__remove"
                 data-cy="TodoDelete"
+                disabled
               >
                 ×
               </button>
