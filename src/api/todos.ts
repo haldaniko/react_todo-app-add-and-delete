@@ -16,3 +16,7 @@ export const setTodo = (title: string) => {
 
   return client.post<Todo>(`/todos?userId=${USER_ID}`, data);
 };
+
+export const deleteTodo = (id: number) => {
+  return client.delete(`/todos/${id}`);
+};

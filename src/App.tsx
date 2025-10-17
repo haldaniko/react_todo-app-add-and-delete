@@ -1,17 +1,17 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
 import React, { useEffect, useState } from 'react';
-import { getTodos, setTodo, USER_ID } from './api/todos';
+import { deleteTodo, getTodos, setTodo, USER_ID } from './api/todos';
 import { Todo } from './types/Todo';
 
 export const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
+  const [deletingTodoId, setDeletingTodoId] = useState<number | null>(null);
 
   useEffect(() => {
     getTodos()
@@ -68,6 +68,50 @@ export const App: React.FC = () => {
       });
   };
 
+  const handleDeleteTodo = (id: number) => {
+    setDeletingTodoId(id);
+
+    deleteTodo(id)
+      .then(() => {
+        setTodos(prev => prev.filter(todo => todo.id !== id));
+      })
+      .catch(() => {
+        setErrorMessage('Unable to delete a todo');
+      })
+      .finally(() => {
+        setDeletingTodoId(null);
+      });
+  };
+
+  const handleClearCompleted = () => {
+    const completedTodos = todos.filter(todo => todo.completed);
+
+    if (completedTodos.length === 0) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    Promise.allSettled(completedTodos.map(todo => deleteTodo(todo.id)))
+      .then(results => {
+        const successfulIds = completedTodos
+          .filter((_, i) => results[i].status === 'fulfilled')
+          .map(todo => todo.id);
+
+        setTodos(prev => prev.filter(todo => !successfulIds.includes(todo.id)));
+
+        const hasErrors = results.some(r => r.status === 'rejected');
+
+        if (hasErrors) {
+          setErrorMessage('Unable to delete some todos');
+          setTimeout(() => setErrorMessage(''), 3000);
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
   return (
     <div className="todoapp">
       <h1 className="todoapp__title">todos</h1>
@@ -84,7 +128,6 @@ export const App: React.FC = () => {
             data-cy="ToggleAllButton"
           />
 
-          {/* Add a todo on form submit */}
           <input
             key={isLoading ? 'loading' : 'ready'}
             data-cy="NewTodoField"
@@ -127,14 +170,18 @@ export const App: React.FC = () => {
                 type="button"
                 className="todo__remove"
                 data-cy="TodoDelete"
+                onClick={() => handleDeleteTodo(todo.id)}
+                disabled={deletingTodoId === todo.id}
               >
                 ×
               </button>
 
-              <div data-cy="TodoLoader" className="modal overlay">
-                <div className="modal-background has-background-white-ter" />
-                <div className="loader" />
-              </div>
+              {deletingTodoId === todo.id && (
+                <div data-cy="TodoLoader" className="modal overlay is-active">
+                  <div className="modal-background has-background-white-ter" />
+                  <div className="loader" />
+                </div>
+              )}
             </div>
           ))}
 
@@ -212,7 +259,8 @@ export const App: React.FC = () => {
               type="button"
               className="todoapp__clear-completed"
               data-cy="ClearCompletedButton"
-              disabled={todos.filter(todo => todo.completed).length === 0}
+              disabled={todos.every(todo => !todo.completed) || isLoading}
+              onClick={handleClearCompleted}
             >
               Clear completed
             </button>
