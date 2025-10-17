@@ -11,6 +11,13 @@ export const App: React.FC = () => {
     Completed = 'completed',
   }
 
+  enum ErrorMessage {
+    EmptyTitle = 'Title should not be empty',
+    LoadTodos = 'Unable to load todos',
+    AddTodo = 'Unable to add a todo',
+    DeleteTodo = 'Unable to delete a todo',
+  }
+
   const [errorMessage, setErrorMessage] = useState('');
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<Filter>(Filter.All);
@@ -24,7 +31,7 @@ export const App: React.FC = () => {
     getTodos()
       .then(setTodos)
       .catch(() => {
-        setErrorMessage('Unable to load todos');
+        setErrorMessage(ErrorMessage.LoadTodos);
 
         setTimeout(() => {
           setErrorMessage('');
@@ -45,7 +52,7 @@ export const App: React.FC = () => {
 
   const handleAddTodo = () => {
     if (title.trim() === '') {
-      setErrorMessage('Title should not be empty');
+      setErrorMessage(ErrorMessage.EmptyTitle);
 
       setTimeout(() => {
         setErrorMessage('');
@@ -71,7 +78,7 @@ export const App: React.FC = () => {
         setTitle('');
       })
       .catch(() => {
-        setErrorMessage('Unable to add a todo');
+        setErrorMessage(ErrorMessage.AddTodo);
 
         setTimeout(() => {
           setErrorMessage('');
@@ -93,7 +100,7 @@ export const App: React.FC = () => {
         inputRef.current?.focus();
       })
       .catch(() => {
-        setErrorMessage('Unable to delete a todo');
+        setErrorMessage(ErrorMessage.DeleteTodo);
 
         setTimeout(() => setErrorMessage(''), 3000);
       })
@@ -122,7 +129,7 @@ export const App: React.FC = () => {
         const hasErrors = results.some(r => r.status === 'rejected');
 
         if (hasErrors) {
-          setErrorMessage('Unable to delete a todo');
+          setErrorMessage(ErrorMessage.DeleteTodo);
 
           setTimeout(() => setErrorMessage(''), 3000);
         }
@@ -259,6 +266,7 @@ export const App: React.FC = () => {
                 href="#/"
                 className={`filter__link ${filter === Filter.All ? 'selected' : ''}`}
                 onClick={() => setFilter(Filter.All)}
+                data-cy="FilterLinkAll"
               >
                 All
               </a>
@@ -267,6 +275,7 @@ export const App: React.FC = () => {
                 href="#/active"
                 className={`filter__link ${filter === Filter.Active ? 'selected' : ''}`}
                 onClick={() => setFilter(Filter.Active)}
+                data-cy="FilterLinkActive"
               >
                 Active
               </a>
@@ -275,6 +284,7 @@ export const App: React.FC = () => {
                 href="#/completed"
                 className={`filter__link ${filter === Filter.Completed ? 'selected' : ''}`}
                 onClick={() => setFilter(Filter.Completed)}
+                data-cy="FilterLinkCompleted"
               >
                 Completed
               </a>
