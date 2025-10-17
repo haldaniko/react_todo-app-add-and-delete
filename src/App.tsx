@@ -1,13 +1,17 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
 import React, { useEffect, useState } from 'react';
-import { getTodos } from './api/todos';
+import { getTodos, setTodo, USER_ID } from './api/todos';
 import { Todo } from './types/Todo';
 
 export const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  const [title, setTitle] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [tempTodo, setTempTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
     getTodos()
@@ -32,6 +36,38 @@ export const App: React.FC = () => {
     }
   });
 
+  const handleAddTodo = () => {
+    if (title.trim() === '') {
+      setErrorMessage('Field cannot be empty');
+
+      return;
+    }
+
+    const newTempTodo: Todo = {
+      id: 0,
+      title: title.trim(),
+      completed: false,
+      userId: USER_ID,
+    };
+
+    setTempTodo(newTempTodo);
+    setIsLoading(true);
+    setErrorMessage('');
+
+    setTodo(title.trim())
+      .then(realTodo => {
+        setTodos(prev => [...prev, realTodo]);
+        setTitle('');
+      })
+      .catch(() => {
+        setErrorMessage('Unable to add a todo');
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setTempTodo(null);
+      });
+  };
+
   return (
     <div className="todoapp">
       <h1 className="todoapp__title">todos</h1>
@@ -49,14 +85,22 @@ export const App: React.FC = () => {
           />
 
           {/* Add a todo on form submit */}
-          <form>
-            <input
-              data-cy="NewTodoField"
-              type="text"
-              className="todoapp__new-todo"
-              placeholder="What needs to be done?"
-            />
-          </form>
+          <input
+            key={isLoading ? 'loading' : 'ready'}
+            data-cy="NewTodoField"
+            type="text"
+            className="todoapp__new-todo"
+            placeholder="What needs to be done?"
+            autoFocus
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                handleAddTodo();
+              }
+            }}
+            disabled={isLoading}
+          />
         </header>
 
         <section className="todoapp__main" data-cy="TodoList">
@@ -93,6 +137,40 @@ export const App: React.FC = () => {
               </div>
             </div>
           ))}
+
+          {tempTodo && (
+            <div
+              key={tempTodo.id}
+              data-cy="Todo"
+              className={tempTodo.completed ? 'todo completed' : 'todo'}
+            >
+              <label className="todo__status-label">
+                <input
+                  data-cy="TodoStatus"
+                  type="checkbox"
+                  className="todo__status"
+                  checked={tempTodo.completed}
+                />
+              </label>
+
+              <span data-cy="TodoTitle" className="todo__title">
+                {tempTodo.title}
+              </span>
+
+              <button
+                type="button"
+                className="todo__remove"
+                data-cy="TodoDelete"
+              >
+                ×
+              </button>
+
+              <div data-cy="TodoLoader" className="modal overlay is-active">
+                <div className="modal-background has-background-white-ter" />
+                <div className="loader" />
+              </div>
+            </div>
+          )}
         </section>
 
         {todos.length > 0 && (
