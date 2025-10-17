@@ -5,9 +5,15 @@ import { deleteTodo, getTodos, setTodo, USER_ID } from './api/todos';
 import { Todo } from './types/Todo';
 
 export const App: React.FC = () => {
+  enum Filter {
+    All = 'all',
+    Active = 'active',
+    Completed = 'completed',
+  }
+
   const [errorMessage, setErrorMessage] = useState('');
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [filter, setFilter] = useState<Filter>(Filter.All);
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
@@ -28,9 +34,9 @@ export const App: React.FC = () => {
 
   const visibleTodos = todos.filter(todo => {
     switch (filter) {
-      case 'active':
+      case Filter.Active:
         return !todo.completed;
-      case 'completed':
+      case Filter.Completed:
         return todo.completed;
       default:
         return true;
@@ -251,27 +257,24 @@ export const App: React.FC = () => {
             <nav className="filter" data-cy="Filter">
               <a
                 href="#/"
-                className={`filter__link ${filter === 'all' ? 'selected' : ''}`}
-                data-cy="FilterLinkAll"
-                onClick={() => setFilter('all')}
+                className={`filter__link ${filter === Filter.All ? 'selected' : ''}`}
+                onClick={() => setFilter(Filter.All)}
               >
                 All
               </a>
 
               <a
                 href="#/active"
-                className={`filter__link ${filter === 'active' ? 'selected' : ''}`}
-                data-cy="FilterLinkActive"
-                onClick={() => setFilter('active')}
+                className={`filter__link ${filter === Filter.Active ? 'selected' : ''}`}
+                onClick={() => setFilter(Filter.Active)}
               >
                 Active
               </a>
 
               <a
                 href="#/completed"
-                className={`filter__link ${filter === 'completed' ? 'selected' : ''}`}
-                data-cy="FilterLinkCompleted"
-                onClick={() => setFilter('completed')}
+                className={`filter__link ${filter === Filter.Completed ? 'selected' : ''}`}
+                onClick={() => setFilter(Filter.Completed)}
               >
                 Completed
               </a>
