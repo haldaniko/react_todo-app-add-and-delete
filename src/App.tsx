@@ -24,7 +24,7 @@ export const App: React.FC = () => {
   const [title, setTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
-  const [deletingTodoId, setDeletingTodoId] = useState<number | null>(null);
+  const [deletingTodoIds, setDeletingTodoIds] = useState<number[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -91,21 +91,19 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteTodo = (id: number) => {
-    setDeletingTodoId(id);
+    setDeletingTodoIds(prev => [...prev, id]);
 
     deleteTodo(id)
       .then(() => {
         setTodos(prev => prev.filter(todo => todo.id !== id));
-
         inputRef.current?.focus();
       })
       .catch(() => {
         setErrorMessage(ErrorMessage.DeleteTodo);
-
         setTimeout(() => setErrorMessage(''), 3000);
       })
       .finally(() => {
-        setDeletingTodoId(null);
+        setDeletingTodoIds(prev => prev.filter(activeId => activeId !== id));
       });
   };
 
@@ -201,7 +199,7 @@ export const App: React.FC = () => {
                 className="todo__remove"
                 data-cy="TodoDelete"
                 onClick={() => handleDeleteTodo(todo.id)}
-                disabled={deletingTodoId === todo.id}
+                disabled={deletingTodoIds.includes(todo.id)}
               >
                 ×
               </button>
@@ -209,7 +207,7 @@ export const App: React.FC = () => {
               <div
                 data-cy="TodoLoader"
                 className={`modal overlay ${
-                  deletingTodoId === todo.id ? 'is-active' : ''
+                  deletingTodoIds.includes(todo.id) ? 'is-active' : ''
                 }`}
               >
                 <div className="modal-background has-background-white-ter" />
